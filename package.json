@@ -7,11 +7,11 @@
     "node": ">=20.11.0"
   },
   "scripts": {
-    "build": "corepack pnpm --filter sns-in-vscode run build",
+    "build": "corepack pnpm --filter @sns-in-vscode/tui run build",
     "lint": "biome check --error-on-warnings . && eslint . --max-warnings 0",
     "format": "biome check --write .",
-    "typecheck": "corepack pnpm --filter sns-in-vscode run typecheck",
-    "test": "corepack pnpm --filter sns-in-vscode run test",
+    "typecheck": "corepack pnpm --filter @sns-in-vscode/tui run typecheck",
+    "test": "corepack pnpm --filter @sns-in-vscode/domain run test",
     "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
     "prepare": "lefthook install"
   },
