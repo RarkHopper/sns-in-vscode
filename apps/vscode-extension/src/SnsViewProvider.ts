@@ -4,16 +4,18 @@ import { Author } from './domain/Author';
 import { Post } from './domain/Post';
 import { PostBody } from './domain/PostBody';
 import { PostId } from './domain/PostId';
-import { InMemoryPostRepository } from './infrastructure/InMemoryPostRepository';
+import type { PostRepository } from './domain/PostRepository';
 import type { ExtensionMessage, SerializedPost, WebviewMessage } from './protocol/messages';
 
 export class SnsViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'snsInVscode.timelineView';
 
-  private readonly repository = new InMemoryPostRepository();
   private webviewView: vscode.WebviewView | undefined;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly repository: PostRepository,
+  ) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
