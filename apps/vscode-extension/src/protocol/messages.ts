@@ -34,6 +34,13 @@ export interface SubmitPostMessage {
 }
 
 /**
+ * Post のトークン（JSON シリアライズ形式）
+ */
+export type SerializedToken =
+  | { type: 'text'; text: string }
+  | { type: 'symbol'; filePath: string; symbol?: string };
+
+/**
  * Post の JSON シリアライズ表現（Date → ISO文字列）
  */
 export interface SerializedPost {
@@ -41,4 +48,5 @@ export interface SerializedPost {
   author: string;
   body: string;
   createdAt: string;
+  tokens: SerializedToken[];
 }

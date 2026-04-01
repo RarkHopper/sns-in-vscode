@@ -5,7 +5,12 @@ import { Post } from './domain/Post';
 import { PostBody } from './domain/PostBody';
 import { PostId } from './domain/PostId';
 import type { PostRepository } from './domain/PostRepository';
-import type { ExtensionMessage, SerializedPost, WebviewMessage } from './protocol/messages';
+import type {
+  ExtensionMessage,
+  SerializedPost,
+  SerializedToken,
+  WebviewMessage,
+} from './protocol/messages';
 
 const PAGE_SIZE = 20;
 
@@ -116,6 +121,19 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       font-size: 0.75em;
     }
     .body { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .symbol-badge {
+      display: inline;
+      background: var(--vscode-badge-background);
+      color: var(--vscode-badge-foreground);
+      border: none;
+      border-radius: 3px;
+      padding: 1px 5px;
+      font-size: 0.8em;
+      font-family: var(--vscode-editor-font-family);
+      cursor: pointer;
+      vertical-align: baseline;
+    }
+    .symbol-badge:hover { opacity: 0.85; }
     #sentinel {
       height: 32px;
       display: flex;
@@ -182,6 +200,17 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
+    function renderBody(tokens) {
+      return tokens.map((t) => {
+        if (t.type === 'text') return '<span>' + escapeHtml(t.text) + '</span>';
+        const label = t.symbol ? t.filePath + '#' + t.symbol : t.filePath;
+        return '<button class="symbol-badge"' +
+          ' data-file="' + escapeHtml(t.filePath) + '"' +
+          (t.symbol ? ' data-symbol="' + escapeHtml(t.symbol) + '"' : '') +
+          '>' + escapeHtml(label) + '</button>';
+      }).join('');
+    }
+
     function formatTime(iso) {
       const d = new Date(iso);
       return d.toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -196,7 +225,7 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
           '<span class="author">' + escapeHtml(post.author) + '</span>' +
           '<span class="time">' + formatTime(post.createdAt) + '</span>' +
         '</div>' +
-        '<div class="body">' + escapeHtml(post.body) + '</div>';
+        '<div class="body">' + renderBody(post.tokens) + '</div>';
       return el;
     }
 
@@ -253,5 +282,11 @@ function serialize(post: Post): SerializedPost {
     author: post.author.toString(),
     body: post.body.toString(),
     createdAt: post.createdAt.toISOString(),
+    tokens: post.body.tokens().map((t): SerializedToken => {
+      if (t.type === 'text') return { type: 'text', text: t.text };
+      return t.ref.symbol !== undefined
+        ? { type: 'symbol', filePath: t.ref.filePath, symbol: t.ref.symbol }
+        : { type: 'symbol', filePath: t.ref.filePath };
+    }),
   };
 }
