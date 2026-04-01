@@ -16,7 +16,9 @@ test:
 	corepack pnpm test
 
 build:
-	corepack pnpm build
+	corepack pnpm --filter @sns-in-vscode/db run build
+	corepack pnpm --filter @sns-in-vscode/domain run build
+	corepack pnpm --filter @sns-in-vscode/tui run build
 
 check:
 	corepack pnpm check
