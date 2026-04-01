@@ -1,7 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node", "vscode"]
+    "types": ["node", "vscode"],
+    "paths": {
+      "@sns-in-vscode/db": ["../../packages/db/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts", "vitest.config.ts"]
 }
