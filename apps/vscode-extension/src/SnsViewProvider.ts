@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type * as vscode from 'vscode';
+import * as vscode from 'vscode';
 import { Author } from './domain/Author';
 import { Post } from './domain/Post';
 import { PostBody } from './domain/PostBody';
@@ -66,6 +66,8 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       void this.repository.save(post).then(() => {
         this.send({ type: 'postAdded', post: serialize(post) });
       });
+    } else if (msg.type === 'openSymbol') {
+      void this.openSymbol(msg.filePath, msg.symbol);
     } else {
       void this.repository.findMany(msg.cursor, PAGE_SIZE).then((posts) => {
         this.send({
@@ -74,6 +76,33 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
           hasMore: posts.length === PAGE_SIZE,
         });
       });
+    }
+  }
+
+  private async openSymbol(filePath: string, symbol: string | undefined): Promise<void> {
+    const folders = vscode.workspace.workspaceFolders;
+    const folder = folders?.at(0);
+    if (!folder) return;
+    const root = folder.uri;
+    const uri = vscode.Uri.joinPath(root, filePath);
+    let doc: vscode.TextDocument;
+    try {
+      doc = await vscode.workspace.openTextDocument(uri);
+    } catch {
+      void vscode.window.showWarningMessage(`ファイルが見つかりません: ${filePath}`);
+      return;
+    }
+    const editor = await vscode.window.showTextDocument(doc, { preview: true });
+    if (!symbol) return;
+
+    const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[] | undefined>(
+      'vscode.executeDocumentSymbolProvider',
+      uri,
+    );
+    const found = symbols?.find((s) => s.name === symbol);
+    if (found) {
+      editor.revealRange(found.range, vscode.TextEditorRevealType.InCenter);
+      editor.selection = new vscode.Selection(found.range.start, found.range.start);
     }
   }
 
@@ -252,6 +281,14 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       } else if (msg.type === 'postAdded') {
         timeline.insertBefore(createPostEl(msg.post), timeline.firstChild);
       }
+    });
+
+    timeline.addEventListener('click', (e) => {
+      const badge = e.target.closest('.symbol-badge');
+      if (!badge) return;
+      const msg = { type: 'openSymbol', filePath: badge.dataset.file };
+      if (badge.dataset.symbol) msg.symbol = badge.dataset.symbol;
+      vscode.postMessage(msg);
     });
 
     input.addEventListener('keydown', (e) => {

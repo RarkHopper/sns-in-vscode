@@ -16,10 +16,17 @@ export interface PostAddedMessage {
   post: SerializedPost;
 }
 
+/** シンボルバッジをクリックしてファイル/シンボルを開く */
+export interface OpenSymbolMessage {
+  type: 'openSymbol';
+  filePath: string;
+  symbol?: string;
+}
+
 /**
  * Webview → Extension へ送るメッセージ
  */
-export type WebviewMessage = LoadMoreMessage | SubmitPostMessage;
+export type WebviewMessage = LoadMoreMessage | SubmitPostMessage | OpenSymbolMessage;
 
 /** 次ページをリクエスト */
 export interface LoadMoreMessage {
