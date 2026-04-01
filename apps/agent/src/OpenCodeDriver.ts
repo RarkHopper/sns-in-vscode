@@ -50,7 +50,7 @@ export class OpenCodeDriver {
       opts.timeoutMs ??
       (process.env['SNS_AGENT_TIMEOUT_MS']
         ? Number.parseInt(process.env['SNS_AGENT_TIMEOUT_MS'], 10)
-        : 120_000);
+        : 0); // 0 = no timeout (opencode codebase analysis can take a long time)
   }
 
   complete(prompt: string): Promise<string> {
@@ -74,13 +74,16 @@ export class OpenCodeDriver {
         stderr += chunk.toString();
       });
 
-      const timer = setTimeout(() => {
-        child.kill();
-        reject(new Error(`opencode timeout after ${String(this.timeoutMs)}ms`));
-      }, this.timeoutMs);
+      const timer =
+        this.timeoutMs > 0
+          ? setTimeout(() => {
+              child.kill();
+              reject(new Error(`opencode timeout after ${String(this.timeoutMs)}ms`));
+            }, this.timeoutMs)
+          : null;
 
       child.on('error', (err: NodeJS.ErrnoException) => {
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         if (err.code === 'ENOENT') {
           reject(new Error('opencode が見つかりません: npm install -g opencode-ai'));
         } else {
@@ -89,7 +92,7 @@ export class OpenCodeDriver {
       });
 
       child.on('close', (code) => {
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
         if (code !== 0) {
           reject(new Error(`opencode が終了コード ${String(code)} で失敗:\n${stderr}`));
           return;
