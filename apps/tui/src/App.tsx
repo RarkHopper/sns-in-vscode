@@ -14,7 +14,7 @@ export type Mode = 'timeline' | 'compose';
 export function App({ repository }: Props): React.ReactElement {
   const { exit } = useApp();
   const [mode, setMode] = useState<Mode>('timeline');
-  const { posts, hasMore, loading, loadMore, addPost } = useTimeline(repository);
+  const { posts, hasMore, loading, lastPrepended, loadMore, addPost } = useTimeline(repository);
 
   const handleDone = (post: Post): void => {
     addPost(post);
@@ -35,6 +35,7 @@ export function App({ repository }: Props): React.ReactElement {
     posts,
     hasMore,
     loading,
+    lastPrepended,
     onLoadMore: loadMore,
     onCompose: () => {
       setMode('compose');

@@ -4,13 +4,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { openInVSCode } from '../utils/codeJump.js';
 import { PostItem } from './PostItem.js';
 
-const AUTO_SCROLL_MS = 1000;
-const PAUSE_RESUME_MS = 5000;
-
 interface Props {
   posts: Post[];
   hasMore: boolean;
   loading: boolean;
+  lastPrepended: number;
   onLoadMore: () => void;
   onCompose: () => void;
   onQuit: () => void;
@@ -20,39 +18,29 @@ export function Timeline({
   posts,
   hasMore,
   loading,
+  lastPrepended,
   onLoadMore,
   onCompose,
   onQuit,
 }: Props): React.ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const pauseTemporarily = (): void => {
-    setPaused(true);
-    if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-    pauseTimerRef.current = setTimeout(() => {
-      setPaused(false);
-    }, PAUSE_RESUME_MS);
-  };
+  const [unseen, setUnseen] = useState(0);
+  const prevPrependedRef = useRef(0);
 
   useEffect(() => {
-    if (paused || posts.length === 0) return;
-    const timer = setInterval(() => {
-      setSelectedIndex((i) => {
-        const next = i + 1;
-        if (next >= posts.length) {
-          if (hasMore && !loading) onLoadMore();
-          return 0;
-        }
-        if (next >= posts.length - 3 && hasMore && !loading) onLoadMore();
-        return next;
-      });
-    }, AUTO_SCROLL_MS);
-    return () => {
-      clearInterval(timer);
-    };
-  }, [paused, posts.length, hasMore, loading, onLoadMore]);
+    if (lastPrepended === 0 || lastPrepended === prevPrependedRef.current) return;
+    prevPrependedRef.current = lastPrepended;
+
+    setSelectedIndex((i) => {
+      if (i === 0) {
+        // 先頭にいる → 新着に自動追従（index 0 のまま = 最新）
+        return 0;
+      }
+      // 過去を読んでいる → 位置をズラさず、未読バナーを出す
+      setUnseen((u) => u + lastPrepended);
+      return i + lastPrepended;
+    });
+  }, [lastPrepended]);
 
   useInput((input, key) => {
     if (input === 'q') {
@@ -63,14 +51,9 @@ export function Timeline({
       onCompose();
       return;
     }
-    if (input === ' ') {
-      if (paused) {
-        setPaused(false);
-        if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-      } else {
-        setPaused(true);
-        if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
-      }
+    if (input === 't') {
+      setSelectedIndex(0);
+      setUnseen(0);
       return;
     }
 
@@ -82,15 +65,28 @@ export function Timeline({
     }
 
     if (key.downArrow || input === 'j') {
-      pauseTemporarily();
-      setSelectedIndex((i) => Math.min(i + 1, posts.length - 1));
+      setSelectedIndex((i) => {
+        const next = Math.min(i + 1, posts.length - 1);
+        if (next >= posts.length - 3 && hasMore && !loading) onLoadMore();
+        return next;
+      });
     } else if (key.upArrow || input === 'k') {
-      pauseTemporarily();
-      setSelectedIndex((i) => Math.max(i - 1, 0));
+      setSelectedIndex((i) => {
+        const next = Math.max(i - 1, 0);
+        if (next === 0) setUnseen(0);
+        return next;
+      });
     }
   });
 
-  const statusText = loading ? '⏳' : paused ? `⏸ PAUSED  [Space] 再開` : '▶ AUTO';
+  const unseenBanner =
+    unseen > 0
+      ? React.createElement(
+          Text,
+          { color: 'yellow', bold: true },
+          `  ↑ 新着 ${unseen}件  [t] で先頭へ`,
+        )
+      : null;
 
   return React.createElement(
     Box,
@@ -98,8 +94,9 @@ export function Timeline({
     React.createElement(
       Text,
       { bold: true, color: 'cyan' },
-      `📱 SNS  [↑↓] scroll  [Space] pause  [n] post  [o] open  [q] quit   ${statusText}`,
+      `📱 SNS  [↑↓/j/k] scroll  [t] top  [n] post  [o] open  [q] quit`,
     ),
+    unseenBanner,
     React.createElement(Text, null, ''),
     ...posts.map((post: Post, i: number) =>
       React.createElement(PostItem, {

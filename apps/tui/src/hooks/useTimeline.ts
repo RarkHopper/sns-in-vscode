@@ -8,12 +8,14 @@ interface TimelineState {
   posts: Post[];
   hasMore: boolean;
   loading: boolean;
+  lastPrepended: number;
 }
 
 interface UseTimeline {
   posts: Post[];
   hasMore: boolean;
   loading: boolean;
+  lastPrepended: number;
   loadMore: () => void;
   addPost: (post: Post) => void;
 }
@@ -23,6 +25,7 @@ export function useTimeline(repository: PostRepository): UseTimeline {
     posts: [],
     hasMore: false,
     loading: true,
+    lastPrepended: 0,
   });
   const loadingRef = useRef(false);
   const postsRef = useRef<Post[]>([]);
@@ -40,6 +43,7 @@ export function useTimeline(repository: PostRepository): UseTimeline {
           posts: cursor ? [...s.posts, ...fetched] : fetched,
           hasMore: fetched.length === PAGE_SIZE,
           loading: false,
+          lastPrepended: 0,
         }));
         loadingRef.current = false;
       });
@@ -52,7 +56,11 @@ export function useTimeline(repository: PostRepository): UseTimeline {
       const existingIds = new Set(postsRef.current.map((p) => p.id.value));
       const newPosts = fetched.filter((p) => !existingIds.has(p.id.value));
       if (newPosts.length === 0) return;
-      setState((s) => ({ ...s, posts: [...newPosts, ...s.posts] }));
+      setState((s) => ({
+        ...s,
+        posts: [...newPosts, ...s.posts],
+        lastPrepended: newPosts.length,
+      }));
     });
   }, [repository]);
 
@@ -74,8 +82,15 @@ export function useTimeline(repository: PostRepository): UseTimeline {
   }, [state, load]);
 
   const addPost = useCallback((post: Post): void => {
-    setState((s) => ({ ...s, posts: [post, ...s.posts] }));
+    setState((s) => ({ ...s, posts: [post, ...s.posts], lastPrepended: 1 }));
   }, []);
 
-  return { posts: state.posts, hasMore: state.hasMore, loading: state.loading, loadMore, addPost };
+  return {
+    posts: state.posts,
+    hasMore: state.hasMore,
+    loading: state.loading,
+    lastPrepended: state.lastPrepended,
+    loadMore,
+    addPost,
+  };
 }
