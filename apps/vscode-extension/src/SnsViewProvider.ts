@@ -7,6 +7,8 @@ import { PostId } from './domain/PostId';
 import type { PostRepository } from './domain/PostRepository';
 import type { ExtensionMessage, SerializedPost, WebviewMessage } from './protocol/messages';
 
+const PAGE_SIZE = 20;
+
 export class SnsViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'snsInVscode.timelineView';
 
@@ -35,8 +37,12 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       this.handleMessage(raw as WebviewMessage);
     });
 
-    void this.repository.findMany().then((posts) => {
-      this.send({ type: 'postsLoaded', posts: posts.map(serialize), hasMore: false });
+    void this.repository.findMany(undefined, PAGE_SIZE).then((posts) => {
+      this.send({
+        type: 'postsLoaded',
+        posts: posts.map(serialize),
+        hasMore: posts.length === PAGE_SIZE,
+      });
     });
   }
 
@@ -54,6 +60,14 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
 
       void this.repository.save(post).then(() => {
         this.send({ type: 'postAdded', post: serialize(post) });
+      });
+    } else {
+      void this.repository.findMany(msg.cursor, PAGE_SIZE).then((posts) => {
+        this.send({
+          type: 'postsLoaded',
+          posts: posts.map(serialize),
+          hasMore: posts.length === PAGE_SIZE,
+        });
       });
     }
   }
@@ -102,6 +116,14 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       font-size: 0.75em;
     }
     .body { line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    #sentinel {
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--vscode-descriptionForeground);
+      font-size: 0.75em;
+    }
     #form {
       display: flex;
       flex-direction: column;
@@ -137,7 +159,9 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
   </style>
 </head>
 <body>
-  <div id="timeline"></div>
+  <div id="timeline">
+    <div id="sentinel"></div>
+  </div>
   <form id="form">
     <textarea id="input" rows="2" placeholder="いまどうしてる？（Shift+Enter で改行）"></textarea>
     <button id="submit" type="submit">投稿</button>
@@ -145,9 +169,14 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
   <script>
     const vscode = acquireVsCodeApi();
     const timeline = document.getElementById('timeline');
+    const sentinel = document.getElementById('sentinel');
     const form = document.getElementById('form');
     const input = document.getElementById('input');
     const submit = document.getElementById('submit');
+
+    let hasMore = false;
+    let loading = false;
+    let lastCursor = null;
 
     function escapeHtml(text) {
       return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -171,12 +200,28 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       return el;
     }
 
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && hasMore && !loading) {
+        loading = true;
+        sentinel.textContent = '読み込み中…';
+        vscode.postMessage({ type: 'loadMore', cursor: lastCursor });
+      }
+    }, { threshold: 0.1 });
+    observer.observe(sentinel);
+
     window.addEventListener('message', (event) => {
       const msg = event.data;
       if (msg.type === 'postsLoaded') {
-        msg.posts.forEach((p) => timeline.appendChild(createPostEl(p)));
+        msg.posts.forEach((p) => {
+          timeline.insertBefore(createPostEl(p), sentinel);
+          lastCursor = p.id;
+        });
+        hasMore = msg.hasMore;
+        loading = false;
+        sentinel.textContent = hasMore ? '' : '以上です';
+        if (!hasMore) observer.unobserve(sentinel);
       } else if (msg.type === 'postAdded') {
-        timeline.prepend(createPostEl(msg.post));
+        timeline.insertBefore(createPostEl(msg.post), timeline.firstChild);
       }
     });
 
