@@ -4,7 +4,7 @@
   "private": true,
   "publisher": "rarkhopper",
   "displayName": "SNS in VS Code",
-  "description": "Minimal Hello World VS Code extension package for workspace bootstrap.",
+  "description": "SNS timeline in your VS Code sidebar.",
   "license": "MIT",
   "engines": {
     "node": ">=20.11.0",
@@ -14,16 +14,28 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:snsInVscode.helloWorld"
+    "onView:snsInVscode.timelineView"
   ],
   "main": "./dist/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "snsInVscode.helloWorld",
-        "title": "SNS in VS Code: Hello World"
-      }
-    ]
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sns-in-vscode",
+          "title": "SNS",
+          "icon": "assets/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "sns-in-vscode": [
+        {
+          "type": "webview",
+          "id": "snsInVscode.timelineView",
+          "name": "Timeline"
+        }
+      ]
+    }
   },
   "scripts": {
     "build": "rimraf dist && node esbuild.mjs",

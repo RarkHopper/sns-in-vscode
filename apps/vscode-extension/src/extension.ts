@@ -1,10 +1,9 @@
 import * as vscode from 'vscode';
-import { buildHelloMessage, extensionCommand } from './hello';
+import { SnsViewProvider } from './SnsViewProvider';
 
 export const activate = (context: vscode.ExtensionContext): void => {
-  const helloCommand = vscode.commands.registerCommand(extensionCommand, () => {
-    return vscode.window.showInformationMessage(buildHelloMessage());
-  });
-
-  context.subscriptions.push(helloCommand);
+  const provider = new SnsViewProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(SnsViewProvider.viewType, provider),
+  );
 };
