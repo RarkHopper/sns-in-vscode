@@ -1,7 +1,7 @@
 /**
  * Extension → Webview へ送るメッセージ
  */
-export type ExtensionMessage = PostsLoadedMessage | PostAddedMessage;
+export type ExtensionMessage = PostsLoadedMessage | PostAddedMessage | SymbolPreviewMessage;
 
 /** 初回ロードまたは追加ページのデータ */
 export interface PostsLoadedMessage {
@@ -16,6 +16,12 @@ export interface PostAddedMessage {
   post: SerializedPost;
 }
 
+/** シンボルプレビューコード片 */
+export interface SymbolPreviewMessage {
+  type: 'symbolPreview';
+  code: string;
+}
+
 /** シンボルバッジをクリックしてファイル/シンボルを開く */
 export interface OpenSymbolMessage {
   type: 'openSymbol';
@@ -23,10 +29,21 @@ export interface OpenSymbolMessage {
   symbol?: string;
 }
 
+/** シンボルバッジにホバーしてプレビューを要求 */
+export interface PreviewSymbolMessage {
+  type: 'previewSymbol';
+  filePath: string;
+  symbol?: string;
+}
+
 /**
  * Webview → Extension へ送るメッセージ
  */
-export type WebviewMessage = LoadMoreMessage | SubmitPostMessage | OpenSymbolMessage;
+export type WebviewMessage =
+  | LoadMoreMessage
+  | SubmitPostMessage
+  | OpenSymbolMessage
+  | PreviewSymbolMessage;
 
 /** 次ページをリクエスト */
 export interface LoadMoreMessage {

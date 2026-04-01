@@ -68,6 +68,8 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       });
     } else if (msg.type === 'openSymbol') {
       void this.openSymbol(msg.filePath, msg.symbol);
+    } else if (msg.type === 'previewSymbol') {
+      void this.previewSymbol(msg.filePath, msg.symbol);
     } else {
       void this.repository.findMany(msg.cursor, PAGE_SIZE).then((posts) => {
         this.send({
@@ -104,6 +106,39 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       editor.revealRange(found.range, vscode.TextEditorRevealType.InCenter);
       editor.selection = new vscode.Selection(found.range.start, found.range.start);
     }
+  }
+
+  private async previewSymbol(filePath: string, symbol: string | undefined): Promise<void> {
+    const folder = vscode.workspace.workspaceFolders?.at(0);
+    if (!folder) return;
+    const uri = vscode.Uri.joinPath(folder.uri, filePath);
+    let doc: vscode.TextDocument;
+    try {
+      doc = await vscode.workspace.openTextDocument(uri);
+    } catch {
+      return;
+    }
+
+    let startLine = 0;
+    let endLine = Math.min(14, doc.lineCount - 1);
+
+    if (symbol) {
+      const symbols = await vscode.commands.executeCommand<vscode.DocumentSymbol[] | undefined>(
+        'vscode.executeDocumentSymbolProvider',
+        uri,
+      );
+      const found = symbols?.find((s) => s.name === symbol);
+      if (found) {
+        startLine = found.range.start.line;
+        endLine = Math.min(found.range.end.line, startLine + 29);
+      }
+    }
+
+    const lines: string[] = [];
+    for (let i = startLine; i <= endLine; i++) {
+      lines.push(doc.lineAt(i).text);
+    }
+    this.send({ type: 'symbolPreview', code: lines.join('\n') });
   }
 
   private send(msg: ExtensionMessage): void {
@@ -163,6 +198,25 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
       vertical-align: baseline;
     }
     .symbol-badge:hover { opacity: 0.85; }
+    #tooltip {
+      position: fixed;
+      display: none;
+      background: var(--vscode-editor-background);
+      color: var(--vscode-editor-foreground);
+      border: 1px solid var(--vscode-panel-border);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-family: var(--vscode-editor-font-family);
+      font-size: 0.78em;
+      line-height: 1.4;
+      max-width: 420px;
+      max-height: 220px;
+      overflow: hidden;
+      white-space: pre;
+      z-index: 9999;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      pointer-events: none;
+    }
     #sentinel {
       height: 32px;
       display: flex;
@@ -209,6 +263,7 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
   <div id="timeline">
     <div id="sentinel"></div>
   </div>
+  <div id="tooltip"></div>
   <form id="form">
     <textarea id="input" rows="2" placeholder="いまどうしてる？（Shift+Enter で改行）"></textarea>
     <button id="submit" type="submit">投稿</button>
@@ -216,6 +271,7 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
   <script>
     const vscode = acquireVsCodeApi();
     const timeline = document.getElementById('timeline');
+    const tooltip = document.getElementById('tooltip');
     const sentinel = document.getElementById('sentinel');
     const form = document.getElementById('form');
     const input = document.getElementById('input');
@@ -224,6 +280,10 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
     let hasMore = false;
     let loading = false;
     let lastCursor = null;
+    let tooltipTimer = null;
+    let mouseX = 0, mouseY = 0;
+
+    document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
 
     function escapeHtml(text) {
       return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -280,7 +340,33 @@ export class SnsViewProvider implements vscode.WebviewViewProvider {
         if (!hasMore) observer.unobserve(sentinel);
       } else if (msg.type === 'postAdded') {
         timeline.insertBefore(createPostEl(msg.post), timeline.firstChild);
+      } else if (msg.type === 'symbolPreview') {
+        tooltip.textContent = msg.code;
+        const tw = 420, th = 220;
+        let x = mouseX + 14, y = mouseY - 14;
+        if (x + tw > window.innerWidth) x = mouseX - tw - 14;
+        if (y + th > window.innerHeight) y = mouseY - th;
+        tooltip.style.left = x + 'px';
+        tooltip.style.top = y + 'px';
+        tooltip.style.display = 'block';
       }
+    });
+
+    timeline.addEventListener('mouseover', (e) => {
+      const badge = e.target.closest('.symbol-badge');
+      if (!badge) return;
+      clearTimeout(tooltipTimer);
+      tooltipTimer = setTimeout(() => {
+        const msg = { type: 'previewSymbol', filePath: badge.dataset.file };
+        if (badge.dataset.symbol) msg.symbol = badge.dataset.symbol;
+        vscode.postMessage(msg);
+      }, 400);
+    });
+
+    timeline.addEventListener('mouseout', (e) => {
+      if (!e.target.closest('.symbol-badge')) return;
+      clearTimeout(tooltipTimer);
+      tooltip.style.display = 'none';
     });
 
     timeline.addEventListener('click', (e) => {
