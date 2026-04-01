@@ -1,7 +1,22 @@
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { resolveProjectDir } from './utils.js';
 
 const POST_TAG_RE = /<post>([\s\S]*?)<\/post>/i;
+
+/** リポジトリルートの opencode.json から model フィールドを読む。読めない場合は undefined。 */
+function readModelFromConfig(): string | undefined {
+  try {
+    const configPath = join(dirname(fileURLToPath(import.meta.url)), '../../..', 'opencode.json');
+    const raw = readFileSync(configPath, 'utf8');
+    const config = JSON.parse(raw) as { model?: string };
+    return config.model;
+  } catch {
+    return undefined;
+  }
+}
 
 interface Options {
   /** opencode に渡すモデル文字列（例: "ollama/llama3.2"）。未指定時は opencode のデフォルト設定に従う。 */
@@ -25,7 +40,7 @@ export class OpenCodeDriver {
   private readonly timeoutMs: number;
 
   constructor(opts: Options = {}) {
-    this.model = opts.model ?? process.env['SNS_AGENT_MODEL'];
+    this.model = opts.model ?? process.env['SNS_AGENT_MODEL'] ?? readModelFromConfig();
     this.projectDir = opts.projectDir ?? resolveProjectDir();
     this.timeoutMs =
       opts.timeoutMs ??
