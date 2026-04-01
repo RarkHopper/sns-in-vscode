@@ -23,16 +23,18 @@ export function PostItem({ post, selected }: Props): React.ReactElement {
 
   return React.createElement(
     Box,
-    { flexDirection: 'column', marginBottom: 1 },
+    {
+      flexDirection: 'column',
+      borderStyle: 'single',
+      borderColor: selected ? 'cyan' : 'gray',
+      paddingX: 1,
+      marginBottom: 0,
+    },
     React.createElement(
       Text,
-      { color: selected ? 'cyan' : 'gray' },
+      { color: selected ? 'cyan' : 'gray', dimColor: !selected },
       `${prefix}${post.author.toString()}  ${time}`,
     ),
-    React.createElement(
-      Box,
-      { flexDirection: 'row', flexWrap: 'wrap', paddingLeft: 2 },
-      ...tokenNodes,
-    ),
+    React.createElement(Box, { flexDirection: 'row', flexWrap: 'wrap' }, ...tokenNodes),
   );
 }
