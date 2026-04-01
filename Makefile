@@ -1,6 +1,4 @@
-.PHONY: install lint format typecheck test build check ext-install ext-package
-
-VSIX := apps/vscode-extension/dist/sns-in-vscode.vsix
+.PHONY: install lint format typecheck test build check dev post agent-run agent-start
 
 install:
 	corepack pnpm install
@@ -23,8 +21,15 @@ build:
 check:
 	corepack pnpm check
 
-ext-package: build
-	corepack pnpm --filter sns-in-vscode exec vsce package --no-dependencies --allow-missing-repository --out dist/sns-in-vscode.vsix
+dev:
+	corepack pnpm --filter @sns-in-vscode/tui dev
 
-ext-install: ext-package
-	code --install-extension $(VSIX)
+post:
+	@if [ -z "$(TEXT)" ]; then echo "Usage: make post TEXT='your post'"; exit 1; fi
+	corepack pnpm --filter @sns-in-vscode/cli dev post "$(TEXT)"
+
+agent-run:
+	corepack pnpm --filter @sns-in-vscode/agent dev run
+
+agent-start:
+	corepack pnpm --filter @sns-in-vscode/agent dev start

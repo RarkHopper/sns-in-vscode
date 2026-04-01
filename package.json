@@ -7,6 +7,7 @@
     "node": ">=20.11.0"
   },
   "scripts": {
+    "dev": "corepack pnpm --filter @sns-in-vscode/tui dev",
     "build": "corepack pnpm --filter @sns-in-vscode/tui run build",
     "lint": "biome check --error-on-warnings . && eslint . --max-warnings 0",
     "format": "biome check --write .",
