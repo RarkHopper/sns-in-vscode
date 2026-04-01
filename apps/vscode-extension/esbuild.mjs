@@ -5,7 +5,7 @@ const watch = process.argv.includes('--watch');
 const extensionConfig = {
   bundle: true,
   entryPoints: ['src/extension.ts'],
-  external: ['vscode'],
+  external: ['vscode', 'better-sqlite3'],
   format: 'cjs',
   logLevel: 'info',
   outfile: 'dist/extension.js',

@@ -34,6 +34,10 @@ importers:
         version: 5.9.3
 
   apps/vscode-extension:
+    dependencies:
+      '@sns-in-vscode/db':
+        specifier: workspace:*
+        version: link:../../packages/db
     devDependencies:
       '@types/node':
         specifier: ^25.5.0
