@@ -1,0 +1,15 @@
+# Include only what VS Code needs at runtime
+!dist/
+!package.json
+
+# Exclude everything else
+.vscode-test/
+coverage/
+node_modules/
+src/
+*.vsix
+*.map
+esbuild.mjs
+panda.config.ts
+tsconfig*.json
+vitest.config.ts

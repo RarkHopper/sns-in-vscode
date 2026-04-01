@@ -1,0 +1,34 @@
+{
+  "name": "sns-in-vscode-workspace",
+  "private": true,
+  "description": "pnpm workspace for the SNS in VS Code extension.",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "build": "corepack pnpm --filter sns-in-vscode run build",
+    "lint": "biome check --error-on-warnings . && eslint . --max-warnings 0",
+    "format": "biome check --write .",
+    "typecheck": "corepack pnpm --filter sns-in-vscode run typecheck",
+    "test": "corepack pnpm --filter sns-in-vscode run test",
+    "check": "corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "lefthook": "^2.1.4",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lefthook"
+    ]
+  }
+}
