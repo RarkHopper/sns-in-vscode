@@ -4,28 +4,30 @@ import process from 'node:process';
 import { resolveDbPath } from '../utils.js';
 import { runOnce } from './run.js';
 
-const DEFAULT_INTERVAL_MS = 10 * 1_000; // 10s
+const DEFAULT_CONCURRENCY = 4;
 
 export async function startDaemon(_args: string[]): Promise<void> {
-  const intervalMs =
-    Number.parseInt(process.env['SNS_INTERVAL_MS'] ?? '', 10) || DEFAULT_INTERVAL_MS;
+  const concurrency =
+    Number.parseInt(process.env['SNS_AGENT_CONCURRENCY'] ?? '', 10) || DEFAULT_CONCURRENCY;
 
   const pidFile = join(resolveDbPath(), '..', 'agent.pid');
   writeFileSync(pidFile, String(process.pid), 'utf8');
 
   console.log(
-    `[agent] Starting daemon (interval: ${String(intervalMs / 1000)}s, PID: ${String(process.pid)})`,
+    `[agent] Starting daemon (concurrency: ${String(concurrency)}, PID: ${String(process.pid)})`,
   );
   console.log(`[agent] PID written to: ${pidFile}`);
 
-  const loop = async (): Promise<void> => {
-    try {
-      await runOnce([]);
-    } catch (err) {
-      console.error('[agent] Error during run:', err);
+  /** 1ワーカー: 完了次第すぐ次を実行し続ける。 */
+  const worker = async (id: number): Promise<void> => {
+    for (;;) {
+      try {
+        await runOnce([]);
+      } catch (err) {
+        console.error(`[agent:${String(id)}] Error:`, err);
+      }
     }
-    setTimeout(() => void loop(), intervalMs);
   };
 
-  await loop();
+  await Promise.all(Array.from({ length: concurrency }, (_, i) => worker(i + 1)));
 }

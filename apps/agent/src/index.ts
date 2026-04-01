@@ -15,12 +15,12 @@ function printHelp(): void {
 
 Usage:
   sns-agent run             Analyze project and generate posts (once)
-  sns-agent start           Start background daemon (repeats on interval)
+  sns-agent start           Start background daemon (concurrent workers, no interval)
 
 Environment:
-  SNS_DB_PATH      Path to SQLite DB (default: ~/.sns-in-vscode/sns.db)
-  SNS_PROJECT_DIR  Project root to analyze (default: cwd)
-  SNS_INTERVAL_MS  Interval between runs in ms (default: 10000 = 10s)
+  SNS_DB_PATH           Path to SQLite DB (default: ~/.sns-in-vscode/sns.db)
+  SNS_PROJECT_DIR       Project root to analyze (default: cwd)
+  SNS_AGENT_CONCURRENCY Number of parallel workers (default: 3)
 `);
 }
 
