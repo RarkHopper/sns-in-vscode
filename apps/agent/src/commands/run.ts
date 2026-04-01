@@ -51,6 +51,5 @@ export async function runOnce(_args: string[]): Promise<void> {
   new PostWriter(db).write(text, `@${role.name}-bot`);
   db.close();
 
-  console.log(`[agent] posted as @${role.name}-bot:`);
-  console.log(text);
+  console.log(`[agent] posted as @${role.name}-bot`);
 }

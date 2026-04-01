@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -6,33 +6,37 @@ import { resolveProjectDir } from './utils.js';
 
 const POST_TAG_RE = /<post>([\s\S]*?)<\/post>/i;
 
-/** リポジトリルートの opencode.json から model フィールドを読む。読めない場合は undefined。 */
+interface OpenCodeJson {
+  model?: string;
+  provider?: Record<string, { options?: { baseURL?: string; apiKey?: string } }>;
+}
+
+/** opencode.json から model 文字列を読む ("provider/model" 形式のまま返す)。 */
 function readModelFromConfig(): string | undefined {
   try {
     const configPath = join(dirname(fileURLToPath(import.meta.url)), '../../..', 'opencode.json');
     const raw = readFileSync(configPath, 'utf8');
-    const config = JSON.parse(raw) as { model?: string };
-    return config.model;
+    const json = JSON.parse(raw) as OpenCodeJson;
+    return json.model;
   } catch {
     return undefined;
   }
 }
 
 interface Options {
-  /** opencode に渡すモデル文字列（例: "ollama/llama3.2"）。未指定時は opencode のデフォルト設定に従う。 */
+  /** opencode に渡すモデル文字列。未指定時は opencode.json → SNS_AGENT_MODEL の順で解決。 */
   model?: string;
   /** opencode を実行するプロジェクトディレクトリ。未指定時は SNS_PROJECT_DIR または cwd。 */
   projectDir?: string;
-  /** opencode の最大待機時間（ms）。デフォルト 120 秒。 */
+  /** 最大待機時間（ms）。デフォルト 120 秒。 */
   timeoutMs?: number;
 }
 
 /**
- * opencode を `opencode run "<prompt>"` でヘッドレス呼び出しし、
- * プロジェクトを分析させて SNS 投稿テキストを生成する。
+ * opencode を `opencode run "<prompt>"` で非同期呼び出しする。
  *
- * プロンプトは <post>...</post> タグで囲んだ出力を要求する前提。
- * タグが見つからない場合は出力の最後の段落にフォールバックする。
+ * spawnSync と異なり spawn を使うため複数ワーカーが真に並列で動作し、
+ * 推論完了次第それぞれ即座に投稿される。
  */
 export class OpenCodeDriver {
   private readonly model: string | undefined;
@@ -50,34 +54,53 @@ export class OpenCodeDriver {
   }
 
   complete(prompt: string): Promise<string> {
-    const args: string[] = ['run'];
-    if (this.model) args.push('--model', this.model);
-    args.push(prompt);
+    return new Promise((resolve, reject) => {
+      const args: string[] = ['run'];
+      if (this.model) args.push('--model', this.model);
+      args.push(prompt);
 
-    const result = spawnSync('opencode', args, {
-      encoding: 'utf8',
-      cwd: this.projectDir,
-      timeout: this.timeoutMs,
+      const child = spawn('opencode', args, {
+        cwd: this.projectDir,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+
+      let stdout = '';
+      let stderr = '';
+
+      child.stdout.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString();
+      });
+      child.stderr.on('data', (chunk: Buffer) => {
+        stderr += chunk.toString();
+      });
+
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new Error(`opencode timeout after ${String(this.timeoutMs)}ms`));
+      }, this.timeoutMs);
+
+      child.on('error', (err: NodeJS.ErrnoException) => {
+        clearTimeout(timer);
+        if (err.code === 'ENOENT') {
+          reject(new Error('opencode が見つかりません: npm install -g opencode-ai'));
+        } else {
+          reject(err);
+        }
+      });
+
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code !== 0) {
+          reject(new Error(`opencode が終了コード ${String(code)} で失敗:\n${stderr}`));
+          return;
+        }
+        try {
+          resolve(extractPost(stdout.trim()));
+        } catch (e) {
+          reject(e instanceof Error ? e : new Error(String(e)));
+        }
+      });
     });
-
-    if (result.error) {
-      const err = result.error as NodeJS.ErrnoException;
-      if (err.code === 'ENOENT') {
-        throw new Error(
-          'opencode が見つかりません。インストールしてください: npm install -g opencode-ai',
-        );
-      }
-      throw result.error;
-    }
-
-    if (result.status !== 0) {
-      throw new Error(
-        `opencode が終了コード ${String(result.status)} で失敗しました:\n${result.stderr}`,
-      );
-    }
-
-    const raw = result.stdout.trim();
-    return Promise.resolve(extractPost(raw));
   }
 }
 
