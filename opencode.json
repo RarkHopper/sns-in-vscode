@@ -9,11 +9,11 @@
         "apiKey": "lm-studio"
       },
       "models": {
-        "qwen/qwen3.5-9b": {
-          "name": "Qwen3.5 9B (LM Studio)"
+        "qwen2.5-coder-7b-instruct": {
+          "name": "Qwen2.5 Coder 7B Instruct (LM Studio)"
         }
       }
     }
   },
-  "model": "lmstudio/qwen/qwen3.5-9b"
+  "model": "lmstudio/qwen2.5-coder-7b-instruct"
 }
