@@ -1,0 +1,22 @@
+You are an expert software engineer analyzing the project "{{projectDir}}".
+
+## Project file tree
+```
+{{tree}}
+```
+
+## Sampled source files
+{{#samples}}
+### {{path}}{{#truncated}} (truncated){{/truncated}}
+```
+{{content}}
+```
+{{/samples}}
+
+## Task
+Generate ONE short post (2–4 lines) for a developer SNS feed about this project.
+The post should share an insightful observation, an architectural decision,
+or a code pattern worth noting. Use the @file/path#Symbol notation to reference
+specific files or symbols when relevant.
+
+Reply with ONLY the post text, no meta-commentary.

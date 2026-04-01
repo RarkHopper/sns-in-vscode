@@ -14,11 +14,9 @@ Options:
 }
 
 export function resolveDbPath(): string {
-  // biome-ignore lint/complexity/useLiteralKeys: noPropertyAccessFromIndexSignature
   const env = process.env['SNS_DB_PATH'];
   if (env) return env;
 
-  // biome-ignore lint/complexity/useLiteralKeys: noPropertyAccessFromIndexSignature
   const home = process.env['HOME'] ?? process.env['USERPROFILE'] ?? '.';
   return `${home}/.sns-in-vscode/sns.db`;
 }

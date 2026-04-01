@@ -1,0 +1,23 @@
+{
+  "name": "@sns-in-vscode/agent",
+  "version": "0.0.1",
+  "private": true,
+  "description": "AI agent for sns-in-vscode: generates posts from project analysis",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "sns-agent": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "node --import tsx/esm src/index.ts"
+  },
+  "dependencies": {
+    "@sns-in-vscode/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
