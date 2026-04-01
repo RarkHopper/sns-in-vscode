@@ -14,9 +14,11 @@
     "dev": "node --import tsx/esm src/index.ts"
   },
   "dependencies": {
-    "@sns-in-vscode/db": "workspace:*"
+    "@sns-in-vscode/db": "workspace:*",
+    "mustache": "^4.2.0"
   },
   "devDependencies": {
+    "@types/mustache": "^4.2.6",
     "@types/node": "^22.0.0",
     "typescript": "^5.7.0"
   }
