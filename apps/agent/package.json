@@ -9,7 +9,7 @@
     "sns-agent": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "dev": "node --import tsx/esm src/index.ts"
   },
