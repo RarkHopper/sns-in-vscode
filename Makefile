@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test build check dev post agent-run agent-start
+.PHONY: install lint format typecheck test build check dev post agent-run agent-start clean
 
 install:
 	corepack pnpm install
@@ -33,3 +33,7 @@ agent-run:
 
 agent-start:
 	corepack pnpm --filter @sns-in-vscode/agent dev start
+
+clean:
+	rm -f ~/.sns-in-vscode/sns.db
+	@echo "DB removed: ~/.sns-in-vscode/sns.db"
