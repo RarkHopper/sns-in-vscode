@@ -20,7 +20,7 @@ Usage:
 Environment:
   SNS_DB_PATH      Path to SQLite DB (default: ~/.sns-in-vscode/sns.db)
   SNS_PROJECT_DIR  Project root to analyze (default: cwd)
-  SNS_INTERVAL_MS  Interval between runs in ms (default: 600000 = 10min)
+  SNS_INTERVAL_MS  Interval between runs in ms (default: 10000 = 10s)
 `);
 }
 

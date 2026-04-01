@@ -4,7 +4,7 @@ import process from 'node:process';
 import { resolveDbPath } from '../utils.js';
 import { runOnce } from './run.js';
 
-const DEFAULT_INTERVAL_MS = 10 * 60 * 1_000; // 10 min
+const DEFAULT_INTERVAL_MS = 10 * 1_000; // 10s
 
 export async function startDaemon(_args: string[]): Promise<void> {
   const intervalMs =
