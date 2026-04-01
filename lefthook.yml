@@ -2,7 +2,7 @@ pre-commit:
   parallel: true
   commands:
     format:
-      glob: '**/*.{cjs,json,md,mjs,ts,yaml,yml}'
+      glob: '**/*.{cjs,js,json,md,mjs,ts,yaml,yml}'
       run: corepack pnpm exec biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
     lint:

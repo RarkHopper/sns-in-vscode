@@ -8,3 +8,6 @@ node_modules/
 *.vsix
 .DS_Store
 packages/db/dist
+# compiled JS accidentally emitted into src/ (tsc without correct tsconfig)
+packages/*/src/*.js
+packages/*/src/*.d.ts
