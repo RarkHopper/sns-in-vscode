@@ -2,6 +2,7 @@ import type { Post, PostRepository } from '@sns-in-vscode/domain';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const PAGE_SIZE = 20;
+const POLL_INTERVAL_MS = 5000;
 
 interface TimelineState {
   posts: Post[];
@@ -24,6 +25,9 @@ export function useTimeline(repository: PostRepository): UseTimeline {
     loading: true,
   });
   const loadingRef = useRef(false);
+  const postsRef = useRef<Post[]>([]);
+
+  postsRef.current = state.posts;
 
   const load = useCallback(
     (cursor?: string): void => {
@@ -43,9 +47,25 @@ export function useTimeline(repository: PostRepository): UseTimeline {
     [repository],
   );
 
+  const pollNew = useCallback((): void => {
+    void repository.findMany(undefined, PAGE_SIZE).then((fetched) => {
+      const existingIds = new Set(postsRef.current.map((p) => p.id.value));
+      const newPosts = fetched.filter((p) => !existingIds.has(p.id.value));
+      if (newPosts.length === 0) return;
+      setState((s) => ({ ...s, posts: [...newPosts, ...s.posts] }));
+    });
+  }, [repository]);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const timer = setInterval(pollNew, POLL_INTERVAL_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [pollNew]);
 
   const loadMore = useCallback((): void => {
     const last = state.posts.at(-1);

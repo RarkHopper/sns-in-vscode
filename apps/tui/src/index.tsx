@@ -6,7 +6,8 @@ import { render } from 'ink';
 import React from 'react';
 import { App } from './App.js';
 
-const dbPath = process.env['SNS_DB_PATH'] ?? path.join(process.env['HOME'] ?? '.', '.sns.db');
+const dbPath =
+  process.env['SNS_DB_PATH'] ?? path.join(process.env['HOME'] ?? '.', '.sns-in-vscode', 'sns.db');
 const db = Database.open(dbPath);
 const repository = new SqlitePostRepository(db);
 
