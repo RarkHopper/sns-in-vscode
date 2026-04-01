@@ -1,0 +1,23 @@
+{
+  "name": "@sns-in-vscode/cli",
+  "version": "0.0.1",
+  "private": true,
+  "description": "CLI for sns-in-vscode: post and view timeline",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "sns": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "dev": "node --import tsx/esm src/index.ts"
+  },
+  "dependencies": {
+    "@sns-in-vscode/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
