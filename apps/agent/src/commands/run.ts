@@ -4,6 +4,7 @@ import { MockLLMClient } from '../MockLLMClient.js';
 import { PostWriter } from '../PostWriter.js';
 import { ProjectCollector } from '../ProjectCollector.js';
 import { loadPrompt } from '../promptLoader.js';
+import { buildSkillsSection, loadSkills } from '../skillLoader.js';
 import { resolveDbPath, resolveProjectDir } from '../utils.js';
 
 export async function runOnce(_args: string[]): Promise<void> {
@@ -14,11 +15,15 @@ export async function runOnce(_args: string[]): Promise<void> {
   const collector = new ProjectCollector(projectDir);
   const info = collector.collect();
 
+  const skills = loadSkills();
+  const skillsSection = buildSkillsSection(skills);
+
   const client: LLMClient = new MockLLMClient();
   const prompt = loadPrompt('analyze-project', {
     projectDir: info.projectDir,
     tree: info.tree,
     samples: info.samples,
+    skillsSection,
   });
 
   console.log('[agent] Generating post…');
